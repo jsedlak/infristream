@@ -1,7 +1,93 @@
-﻿@page "/"
+﻿@inject IMessageIdProvider MessageIdProvider;
+@inject IRepository Repository;
+@page "/"
 
-<h1>Hello, world!</h1>
+<button @onclick="Connect">Connect</button>
 
-Welcome to your new app.
+<input type="text" @bind-value="_sceneName" />
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<button @onclick="ChangeScene">Change Scene Test</button>
+<button @onclick="ListScenes">List Scenes</button>
+<button @onclick="ClearLog">Clear Log</button>
+
+<pre style="font-size:12px;">@_messages</pre>
+
+@code{
+    private string _messages = "";
+    private string _sceneName = "Starting";
+    private StreamService _service;
+
+    protected void ListScenes()
+    {
+        string msgId = MessageIdProvider.Generate();
+        _service.Send(new ListScenes() { MessageId = msgId });
+    }
+
+    protected void ChangeScene()
+    {
+        string msgId = MessageIdProvider.Generate();
+        _service.Send(new RequestSceneChange(_sceneName) { MessageId = msgId });
+    }
+
+    protected void ClearLog()
+    {
+        _messages = "";
+    }
+
+    protected void Connect()
+    {
+        _service = new StreamService("ws://localhost:4444/");
+        _service.OnMessage += (sender, e) =>
+        {
+            if (!e.IsText) { return; }
+
+            var doc = JsonDocument.Parse(e.Data);
+            if (doc.RootElement.TryGetProperty("update-type", out JsonElement updateTypeProperty))
+            {
+                switch (updateTypeProperty.GetString().ToLower())
+                {
+                    case "heartbeat":
+                    case "streamstatus":
+                        return;
+                }
+            }
+
+            _messages += "\r\n" + e.Data;
+            base.InvokeAsync(StateHasChanged).GetAwaiter().GetResult();
+        };
+        _service.Connect();
+    }
+}
+
+@*
+
+        /*
+
+
+    {
+        "current-profile": "Twitch",
+        "current-scene": "Main",
+        "pulse": false,
+        "recording": false,
+        "recording-paused": false,
+        "stats": {
+            "average-frame-time": 1.663581,
+            "cpu-usage": 3.309542104381614,
+            "fps": 60.000002400000099,
+            "free-disk-space": 117232.18359375,
+            "memory-usage": 836.453125,
+            "output-skipped-frames": 11,
+            "output-total-frames": 317548,
+            "render-missed-frames": 235,
+            "render-total-frames": 442606
+        },
+        "stream-timecode": "01:28:11.883",
+        "streaming": true,
+        "total-stream-bytes": 3386883077,
+        "total-stream-frames": 317513,
+        "total-stream-time": 5291,
+        "update-type": "Heartbeat"
+    }
+*/
+
+*@
