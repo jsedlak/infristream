@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Infistream.ServiceModel;
 using Infistream.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Infistream
 {
@@ -24,9 +25,17 @@ namespace Infistream
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<IMessageIdProvider, GuidMessageIdProvider>();
+            services.AddSingleton<IMemoryCache, MemoryCache>();
+            services.AddSingleton<IStreamServiceFactory, ObsStreamServiceFactory>();
+
             services.AddScoped<IRepository>((serviceProvider) =>
             {
                 return new LiteDbRepository("data.db");
+            });
+
+            services.Configure<MemoryCacheOptions>(options =>
+            {
+
             });
         }
 

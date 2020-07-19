@@ -13,18 +13,4 @@ namespace Infistream.ServiceModel
 
         void Delete<TEntity>(Guid id) where TEntity : Entity;
     }
-
-    public interface IStreamServiceFactory
-    {
-        IStreamService Connect(string webSocketUri);
-    }
-
-    public interface IStreamService
-    {
-        event EventHandler<IEnumerable<string>> ScenesListed;
-
-        void ChangeScene(string sceneName);
-
-        void RequestScenes();
-    }
 }

@@ -1,10 +1,17 @@
-﻿@inject IMessageIdProvider MessageIdProvider;
+﻿@inject IStreamServiceFactory StreamServiceFactory;
 @inject IRepository Repository;
 @page "/"
 
 <button @onclick="Connect">Connect</button>
 
 <input type="text" @bind-value="_sceneName" />
+
+<select @onchange="HandleChange">
+    @foreach(var name in _sceneNames)
+    {
+        <option value="@name">@name</option>
+    }
+</select>
 
 <button @onclick="ChangeScene">Change Scene Test</button>
 <button @onclick="ListScenes">List Scenes</button>
@@ -15,18 +22,22 @@
 @code{
     private string _messages = "";
     private string _sceneName = "Starting";
-    private StreamService _service;
+    private IStreamService _service;
+    private IEnumerable<string> _sceneNames = new string[] { };
+
+    private void HandleChange(ChangeEventArgs args)
+    {
+        _sceneName = args.Value.ToString();
+    }
 
     protected void ListScenes()
     {
-        string msgId = MessageIdProvider.Generate();
-        _service.Send(new ListScenes() { MessageId = msgId });
+        _service.RequestScenes();
     }
 
     protected void ChangeScene()
     {
-        string msgId = MessageIdProvider.Generate();
-        _service.Send(new RequestSceneChange(_sceneName) { MessageId = msgId });
+        _service.ChangeScene(_sceneName);
     }
 
     protected void ClearLog()
@@ -36,7 +47,11 @@
 
     protected void Connect()
     {
-        _service = new StreamService("ws://localhost:4444/");
+        _service = StreamServiceFactory.Connect("ws://localhost:4444/");
+        _service.ScenesListed += (sender, scenes) => {
+            _sceneNames = scenes;
+            base.InvokeAsync(StateHasChanged).GetAwaiter().GetResult();
+        };
         _service.OnMessage += (sender, e) =>
         {
             if (!e.IsText) { return; }
@@ -55,39 +70,81 @@
             _messages += "\r\n" + e.Data;
             base.InvokeAsync(StateHasChanged).GetAwaiter().GetResult();
         };
-        _service.Connect();
+        _service.RequestScenes();
     }
 }
 
 @*
 
-        /*
+    /*
+        {
+            "current-profile": "Twitch",
+            "current-scene": "Main",
+            "pulse": false,
+            "recording": false,
+            "recording-paused": false,
+            "stats": {
+                "average-frame-time": 1.663581,
+                "cpu-usage": 3.309542104381614,
+                "fps": 60.000002400000099,
+                "free-disk-space": 117232.18359375,
+                "memory-usage": 836.453125,
+                "output-skipped-frames": 11,
+                "output-total-frames": 317548,
+                "render-missed-frames": 235,
+                "render-total-frames": 442606
+            },
+            "stream-timecode": "01:28:11.883",
+            "streaming": true,
+            "total-stream-bytes": 3386883077,
+            "total-stream-frames": 317513,
+            "total-stream-time": 5291,
+            "update-type": "Heartbeat"
+        }
 
 
-    {
-        "current-profile": "Twitch",
+        {
         "current-scene": "Main",
-        "pulse": false,
-        "recording": false,
-        "recording-paused": false,
-        "stats": {
-            "average-frame-time": 1.663581,
-            "cpu-usage": 3.309542104381614,
-            "fps": 60.000002400000099,
-            "free-disk-space": 117232.18359375,
-            "memory-usage": 836.453125,
-            "output-skipped-frames": 11,
-            "output-total-frames": 317548,
-            "render-missed-frames": 235,
-            "render-total-frames": 442606
-        },
-        "stream-timecode": "01:28:11.883",
-        "streaming": true,
-        "total-stream-bytes": 3386883077,
-        "total-stream-frames": 317513,
-        "total-stream-time": 5291,
-        "update-type": "Heartbeat"
+        "message-id": "285e039e514841e1",
+        "scenes": [
+            {
+                "name": "Starting",
+                "sources": [
+                    {
+                        "alignment": 5,
+                        "cx": 2560.0,
+                        "cy": 1440.0,
+                        "id": 4,
+                        "locked": false,
+                        "muted": false,
+                        "name": "Starting Title",
+                        "render": true,
+                        "source_cx": 2560,
+                        "source_cy": 1440,
+                        "type": "image_source",
+                        "volume": 1.0,
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    {
+                        "alignment": 5,
+                        "cx": 0.0,
+                        "cy": 0.0,
+                        "id": 1,
+                        "locked": true,
+                        "muted": true,
+                        "name": "Background",
+                        "render": true,
+                        "source_cx": 0,
+                        "source_cy": 0,
+                        "type": "ffmpeg_source",
+                        "volume": 1.0,
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                ]
+            },
     }
-*/
+    */
 
 *@

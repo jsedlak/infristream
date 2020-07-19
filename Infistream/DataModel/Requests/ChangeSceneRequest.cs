@@ -2,15 +2,15 @@
 
 namespace Infistream.DataModel.Requests
 {
-    public sealed class RequestSceneChange : BaseRequest
+    public sealed class ChangeSceneRequest : BaseRequest
     {
-        public RequestSceneChange() 
-            : base(RequestConstants.SetCurrentScene)
+        public ChangeSceneRequest() 
+            : base(Requests.SetCurrentScene)
         {
         }
 
-        public RequestSceneChange(string sceneName)
-            : base(RequestConstants.SetCurrentScene)
+        public ChangeSceneRequest(string sceneName)
+            : base(Requests.SetCurrentScene)
         {
             SceneName = sceneName;
         }
